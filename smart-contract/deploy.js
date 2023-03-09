@@ -1,7 +1,9 @@
 const HDWalletProvider = require('truffle-hdwallet-provider');
 
 const Web3 = require('web3');
-const compiledFactory = require('./build/CampaignFactory.json');
+const path = require("path");
+const fs = require("fs-extra");
+const compiledFactory = fs.readFileSync(path.join(__dirname, './contracts/bin/Campaign_abi.json'), { encoding: "utf-8"});
 
 require('dotenv').config();
 
@@ -17,7 +19,7 @@ const deploy = async () => {
     const accounts = await web3.eth.getAccounts();
     console.log('Attemping to deploy to accounts ', accounts[0]);
 
-    const result = await new web3.eth.Contract(JSON.parse(compiledFactory.interface))
+    const result = await new web3.eth.Contract(JSON.parse(compiledFactory).interface)
         .deploy({ data: compiledFactory.bytecode })
         .send({ gas: '5000000', from:accounts[0] });
 
