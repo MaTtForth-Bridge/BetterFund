@@ -1,14 +1,14 @@
-pragma solidity ^0.4.17;
+pragma solidity ^0.8.19;
 
 contract CampaignFactory {
     address[] public deployedCampaigns;
 
-    function createCampaign(uint minimum,string name,string description,string image,uint target) public {
-        address newCampaign = new Campaign(minimum, msg.sender,name,description,image,target);
-        deployedCampaigns.push(newCampaign);
+    function createCampaign(uint minimum,string memory name,string memory description,string memory image,uint target) public {
+        Campaign newCampaign = new Campaign(minimum, msg.sender,name,description,image,target);
+        deployedCampaigns.push(address(newCampaign));
     }
 
-    function getDeployedCampaigns() public view returns (address[]) {
+    function getDeployedCampaigns() public view returns (address[] memory) {
         return deployedCampaigns;
     }
 }
@@ -18,13 +18,14 @@ contract Campaign {
   struct Request {
       string description;
       uint value;
-      address recipient;
+      address payable recipient;
       bool complete;
       uint approvalCount;
       mapping(address => bool) approvals;
   }
 
-  Request[] public requests;
+  uint numRequests;
+    mapping (uint => Request) requests;
   address public manager;
   uint public minimunContribution;
   string public CampaignName;
@@ -41,7 +42,7 @@ contract Campaign {
       _;
   }
 
-  function Campaign(uint minimun, address creator,string name,string description,string image,uint target) public {
+  constructor (uint minimun, address creator,string memory name,string memory description,string memory image,uint target) {
       manager = creator;
       minimunContribution = minimun;
       CampaignName=name;
@@ -58,16 +59,13 @@ contract Campaign {
       approversCount++;
   }
 
-  function createRequest(string description, uint value, address recipient) public restricted {
-      Request memory newRequest = Request({
-         description: description,
-         value: value,
-         recipient: recipient,
-         complete: false,
-         approvalCount: 0
-      });
-
-      requests.push(newRequest);
+  function createRequest(string memory description, uint value, address payable recipient) public restricted {
+      Request storage r = requests[numRequests++];
+        r.description = description;
+        r.value = value;
+        r.recipient = recipient;
+        r.complete = false;
+        r.approvalCount = 0;
   }
 
   function approveRequest(uint index) public {
@@ -78,7 +76,7 @@ contract Campaign {
       requests[index].approvalCount++;
   }
 
-  function finalizeRequest(uint index) public restricted{
+  function finalizeRequest(uint index) public payable restricted{
       require(requests[index].approvalCount > (approversCount / 2));
       require(!requests[index].complete);
 
@@ -88,11 +86,11 @@ contract Campaign {
   }
 
 
-    function getSummary() public view returns (uint,uint,uint,uint,address,string,string,string,uint) {
+    function getSummary() public view returns (uint,uint,uint,uint,address,string memory,string memory,string memory,uint) {
         return(
             minimunContribution,
-            this.balance,
-            requests.length,
+            address(this).balance,
+            numRequests,
             approversCount,
             manager,
             CampaignName,
@@ -103,6 +101,6 @@ contract Campaign {
     }
 
     function getRequestsCount() public view returns (uint){
-        return requests.length;
+        return numRequests;
     }
 }
